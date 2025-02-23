@@ -1,0 +1,4 @@
+.env
+node_modules/
+serviceAccountKey.json
+thegiftingaffair-firebase-adminsdk-fbsvc-f880aa0a56.json
