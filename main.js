@@ -2,7 +2,7 @@ require("dotenv").config();
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
-// Initialize Firebase Admin SDK with credentials from environment variable
+// Initialize Firebase Admin SDK with credentials from environment variable m
 const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
