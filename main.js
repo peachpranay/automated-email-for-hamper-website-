@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Function to send an email
+// Function to send an email h
 async function sendEmail(to, subject, body) {
     const mailOptions = {
         from: `"The Gifting Affair" <${process.env.EMAIL_USER}>`,
