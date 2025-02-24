@@ -1,8 +1,12 @@
 require("dotenv").config();
+const express = require("express");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
-// Initialize Firebase Admin SDK with credentials from environment variable m
+const app = express();
+const PORT = process.env.PORT || 3000; // Use Render's assigned port
+
+// Initialize Firebase Admin SDK
 const serviceAccount = JSON.parse(process.env.FIREBASE_CONFIG);
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -18,7 +22,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Function to send an email h
+// Function to send an email
 async function sendEmail(to, subject, body) {
     const mailOptions = {
         from: `"The Gifting Affair" <${process.env.EMAIL_USER}>`,
@@ -35,7 +39,7 @@ async function sendEmail(to, subject, body) {
     }
 }
 
-// Firestore Listener: Watches for order status changes
+// Firestore Listener
 async function watchOrders() {
     console.log("👀 Watching Firestore orders for updates...");
 
@@ -45,9 +49,8 @@ async function watchOrders() {
             const orderId = change.doc.id;
             const email = order.billingAddress?.email;
 
-            if (!email) return; // Skip if email is missing
+            if (!email) return;
 
-            // Format delivery date
             const deliveryDate = order.deliveryDate
                 ? new Date(order.deliveryDate.seconds * 1000).toLocaleDateString("en-SG", {
                       day: "numeric",
@@ -59,7 +62,6 @@ async function watchOrders() {
             if (change.type === "modified") {
                 const previousOrder = change.doc.previous?.data() || {};
 
-                // Check for payment confirmation (changed from false to true)
                 if (
                     order.paymentStatus?.adminConfirmed &&
                     previousOrder.paymentStatus?.adminConfirmed !== true
@@ -69,29 +71,10 @@ async function watchOrders() {
                     await sendEmail(
                         email,
                         "The Gifting Affair - Payment Confirmation",
-                        `Dear ${order.billingAddress.firstName},
-
-Thank you for your order with The Gifting Affair. We have received your payment.
-
-📦 Order ID: ${orderId}
-📅 Expected Delivery Date: ${deliveryDate}
-💵 Total Amount: $${order.total}
-
-Order Items:
-${order.items.map((item) => `- ${item.quantity}x ${item.name} ($${item.price})`).join("\n")}
-
-Delivery Address:
-${order.shippingAddress.address}
-${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.pincode}
-
-We will notify you once your order is shipped. 
-
-Best regards,  
-The Gifting Affair Team`
+                        `Dear ${order.billingAddress.firstName},\n\nThank you for your order. We have received your payment.\n\n📦 Order ID: ${orderId}\n📅 Expected Delivery: ${deliveryDate}\n💵 Total Amount: $${order.total}\n\nBest regards,\nThe Gifting Affair Team`
                     );
                 }
 
-                // Check for delivery confirmation (changed from false to true)
                 if (
                     order.tracking?.isDelivered &&
                     previousOrder.tracking?.isDelivered !== true
@@ -101,17 +84,7 @@ The Gifting Affair Team`
                     await sendEmail(
                         email,
                         "The Gifting Affair - Delivery Confirmation",
-                        `Dear ${order.billingAddress.firstName},
-
-Your order has been successfully delivered! 🎁
-
-📦 Order ID: ${orderId}
-📅 Delivered on: ${new Date().toLocaleDateString("en-SG")}
-
-We hope you enjoy your purchase! Let us know if you have any feedback.
-
-Best regards,  
-The Gifting Affair Team`
+                        `Dear ${order.billingAddress.firstName},\n\nYour order has been delivered! 🎁\n\n📦 Order ID: ${orderId}\n📅 Delivered on: ${new Date().toLocaleDateString("en-SG")}\n\nBest regards,\nThe Gifting Affair Team`
                     );
                 }
             }
@@ -121,3 +94,13 @@ The Gifting Affair Team`
 
 // Start Firestore Listener
 watchOrders();
+
+// Dummy Express route to prevent Render timeout
+app.get("/", (req, res) => {
+    res.send("Firestore listener is running...");
+});
+
+// Keep server running
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
